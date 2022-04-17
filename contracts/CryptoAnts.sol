@@ -5,6 +5,10 @@ import 'hardhat/console.sol';
 
 interface IEgg is IERC20 {
   function mint(address, uint256) external;
+
+  function setEggPrice(uint256) external;
+
+  function eggPrice() external view returns (uint256);
 }
 
 interface ICryptoAnts is IERC721 {
@@ -13,6 +17,8 @@ interface ICryptoAnts is IERC721 {
   function notLocked() external view returns (bool);
 
   function buyEggs(uint256) external payable;
+
+  function createEgg(uint256 _antId) external returns (bool);
 
   error NoEggs();
   event AntSold();
@@ -26,20 +32,43 @@ interface ICryptoAnts is IERC721 {
 pragma solidity >=0.8.4 <0.9.0;
 
 contract CryptoAnts is ERC721, ICryptoAnts {
-  bool public locked = false;
+  address private _owner;
   mapping(uint256 => address) public antToOwner;
+  bool public locked = false;
   IEgg public immutable eggs;
-  uint256 public eggPrice = 0.01 ether;
   uint256[] public allAntsIds;
   bool public override notLocked = false;
   uint256 public antsCreated = 0;
+  uint256 public antPrice = 0.004 ether;
+  uint256[] private _expiryOf;
+
+  uint256 private _waitTime = 600;
 
   constructor(address _eggs) ERC721('Crypto Ants', 'ANTS') {
+    _owner = msg.sender;
     eggs = IEgg(_eggs);
   }
 
+  modifier expire(uint256 _antId) {
+    require(_expiryOf[_antId - 1] < block.timestamp, 'You must wait 10 minutes');
+    _expiryOf[_antId - 1] = block.timestamp + _waitTime;
+    _;
+  }
+
+  function expiryTime(uint256 _antId) public view returns (uint256) {
+    return _expiryOf[_antId];
+  }
+
+  function createEgg(uint256 _antId) external override expire(_antId) returns (bool) {
+    require(antToOwner[_antId] == msg.sender, 'Unauthorized');
+    eggs.mint(msg.sender, 1);
+    _expiryOf[_antId - 1] = block.timestamp + _waitTime;
+
+    return true;
+  }
+
   function buyEggs(uint256 _amount) external payable override lock {
-    uint256 _eggPrice = eggPrice;
+    uint256 _eggPrice = eggs.eggPrice();
     uint256 eggsCallerCanBuy = (msg.value / _eggPrice);
     eggs.mint(msg.sender, _amount);
     emit EggsBought(msg.sender, eggsCallerCanBuy);
@@ -54,13 +83,15 @@ contract CryptoAnts is ERC721, ICryptoAnts {
     _mint(msg.sender, _antId);
     antToOwner[_antId] = msg.sender;
     allAntsIds.push(_antId);
+    _expiryOf.push(block.timestamp);
     emit AntCreated();
   }
 
   function sellAnt(uint256 _antId) external {
     require(antToOwner[_antId] == msg.sender, 'Unauthorized');
+    require(antPrice < eggs.eggPrice(), 'Ant price is too high');
     // solhint-disable-next-line
-    (bool success, ) = msg.sender.call{value: 0.004 ether}('');
+    (bool success, ) = msg.sender.call{value: antPrice}('');
     require(success, 'Whoops, this call failed!');
     delete antToOwner[_antId];
     _burn(_antId);
@@ -72,6 +103,11 @@ contract CryptoAnts is ERC721, ICryptoAnts {
 
   function getAntsCreated() public view returns (uint256) {
     return antsCreated;
+  }
+
+  function changeEggPrice(uint256 newPrice) public {
+    require(msg.sender == _owner, 'Unauthorized');
+    eggs.setEggPrice(newPrice);
   }
 
   modifier lock() {

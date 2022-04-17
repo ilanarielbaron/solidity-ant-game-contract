@@ -53,11 +53,26 @@ describe('CryptoAnts', function () {
     await evm.snapshot.revert(snapshotId);
   });
 
-  it('should only allow the CryptoAnts contract to mint eggs');
+  it('should only allow the CryptoAnts contract to mint eggs', async () => {
+    await expect(egg.mint(randomUser.address, 1)).to.be.revertedWith(
+      'Only the ants contract can call this function, please refer to the ants contract'
+    );
+  });
 
-  it('should buy an egg and create a new ant with it');
+  it('should buy an egg and create a new ant with it', async () => {
+    await cryptoAnts.buyEggs(1);
+    await expect(cryptoAnts.createAnt()).to.emit(cryptoAnts, 'AntCreated');
+    const antsCreated = await cryptoAnts.antsCreated();
+    expect(antsCreated).to.be.equal(1);
+  });
 
-  it('should send funds to the user who sells an ant');
+  it('should send funds to the user who sells an ant', async () => {
+    await cryptoAnts.connect(randomUser).buyEggs(1);
+    await cryptoAnts.connect(randomUser).createAnt();
+    console.log(ethers.utils.formatEther(await cryptoAnts.connect(randomUser).balanceOf(randomUser.address)));
+    //await cryptoAnts.connect(randomUser).sellAnt(1);
+    //await expect(cryptoAnts.connect(randomUser).balanceOf(randomUser.address)).to.equal(await cryptoAnts.antPrice);
+  });
 
   it('should burn the ant after the user sells it');
 
