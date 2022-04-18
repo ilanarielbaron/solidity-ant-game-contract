@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { utils } from 'ethers';
+import { BigNumber, utils } from 'ethers';
 import { CryptoAnts, CryptoAnts__factory, Egg, Egg__factory } from '@typechained';
 import { evm } from '@utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -63,15 +63,18 @@ describe('CryptoAnts', function () {
     await cryptoAnts.buyEggs(1);
     await expect(cryptoAnts.createAnt()).to.emit(cryptoAnts, 'AntCreated');
     const antsCreated = await cryptoAnts.antsCreated();
+
     expect(antsCreated).to.be.equal(1);
   });
 
   it('should send funds to the user who sells an ant', async () => {
-    await cryptoAnts.connect(randomUser).buyEggs(1);
+    await cryptoAnts.connect(randomUser).buyEggs(1, { value: 0.01 * 10e16 });
     await cryptoAnts.connect(randomUser).createAnt();
-    console.log(ethers.utils.formatEther(await cryptoAnts.connect(randomUser).balanceOf(randomUser.address)));
-    //await cryptoAnts.connect(randomUser).sellAnt(1);
-    //await expect(cryptoAnts.connect(randomUser).balanceOf(randomUser.address)).to.equal(await cryptoAnts.antPrice);
+    const initialBalance = (await randomUser.getBalance());
+    await cryptoAnts.connect(randomUser).sellAnt(1);
+    const finalBalance = (await randomUser.getBalance());
+
+    expect(Number(ethers.utils.formatUnits(finalBalance.sub(initialBalance)))).to.be.greaterThan(0);
   });
 
   it('should burn the ant after the user sells it');

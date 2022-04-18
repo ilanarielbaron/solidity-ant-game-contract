@@ -3,7 +3,9 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 interface IEgg is IERC20 {
   function mint(address, uint256) external;
+
   function setEggPrice(uint256 _newPrice) external;
+
   function eggPrice() external view returns (uint256);
 }
 
@@ -12,7 +14,7 @@ pragma solidity >=0.8.4 <0.9.0;
 
 contract Egg is ERC20, IEgg {
   address private _ants;
-  uint256 private _eggPrice = 0.01 ether;
+  uint256 private _eggPrice = 0.001 ether;
 
   constructor(address __ants) ERC20('EGG', 'EGG') {
     _ants = __ants;
@@ -28,7 +30,7 @@ contract Egg is ERC20, IEgg {
     //solhint-disable-next-line
     require(msg.sender == _ants, 'Only the ants contract can call this function, please refer to the ants contract');
     require(_newPrice > 0, 'The price must be higher than 0');
-    _eggPrice = _newPrice / 1000 ether;
+    _eggPrice = _newPrice;
   }
 
   function eggPrice() public view override returns (uint256) {

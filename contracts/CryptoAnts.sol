@@ -39,7 +39,7 @@ contract CryptoAnts is ERC721, ICryptoAnts {
   uint256[] public allAntsIds;
   bool public override notLocked = false;
   uint256 public antsCreated = 0;
-  uint256 public antPrice = 0.004 ether;
+  uint256 public antPrice = 0.0004 ether;
   uint256[] private _expiryOf;
 
   uint256 private _waitTime = 600;
@@ -56,7 +56,7 @@ contract CryptoAnts is ERC721, ICryptoAnts {
   }
 
   function expiryTime(uint256 _antId) public view returns (uint256) {
-    return _expiryOf[_antId];
+    return _expiryOf[_antId - 1];
   }
 
   function createEgg(uint256 _antId) external override expire(_antId) returns (bool) {
@@ -89,7 +89,6 @@ contract CryptoAnts is ERC721, ICryptoAnts {
 
   function sellAnt(uint256 _antId) external {
     require(antToOwner[_antId] == msg.sender, 'Unauthorized');
-    require(antPrice < eggs.eggPrice(), 'Ant price is too high');
     // solhint-disable-next-line
     (bool success, ) = msg.sender.call{value: antPrice}('');
     require(success, 'Whoops, this call failed!');
@@ -107,6 +106,8 @@ contract CryptoAnts is ERC721, ICryptoAnts {
 
   function changeEggPrice(uint256 newPrice) public {
     require(msg.sender == _owner, 'Unauthorized');
+    // solhint-disable-next-line
+    require(newPrice > antPrice, 'Egg price must be higher than Ant price');
     eggs.setEggPrice(newPrice);
   }
 
