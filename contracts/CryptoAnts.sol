@@ -49,16 +49,6 @@ contract CryptoAnts is ERC721, ICryptoAnts {
     eggs = IEgg(_eggs);
   }
 
-  modifier expire(uint256 _antId) {
-    require(_expiryOf[_antId - 1] < block.timestamp, 'You must wait 10 minutes');
-    _expiryOf[_antId - 1] = block.timestamp + _waitTime;
-    _;
-  }
-
-  function expiryTime(uint256 _antId) public view returns (uint256) {
-    return _expiryOf[_antId - 1];
-  }
-
   function createEgg(uint256 _antId) external override expire(_antId) returns (bool) {
     require(antToOwner[_antId] == msg.sender, 'Unauthorized');
     eggs.mint(msg.sender, 1);
@@ -104,6 +94,10 @@ contract CryptoAnts is ERC721, ICryptoAnts {
     return antsCreated;
   }
 
+  function expiryTime(uint256 _antId) public view returns (uint256) {
+    return _expiryOf[_antId - 1];
+  }
+
   function changeEggPrice(uint256 newPrice) public {
     require(msg.sender == _owner, 'Unauthorized');
     // solhint-disable-next-line
@@ -117,5 +111,11 @@ contract CryptoAnts is ERC721, ICryptoAnts {
     locked = true;
     _;
     locked = notLocked;
+  }
+
+  modifier expire(uint256 _antId) {
+    require(_expiryOf[_antId - 1] < block.timestamp, 'You must wait 10 minutes');
+    _expiryOf[_antId - 1] = block.timestamp + _waitTime;
+    _;
   }
 }
