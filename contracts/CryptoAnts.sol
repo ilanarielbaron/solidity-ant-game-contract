@@ -25,7 +25,6 @@ interface ICryptoAnts is IERC721 {
   event EggCreated();
   error NoZeroAddress();
   event AntCreated();
-  error AlreadyExists();
   error WrongEtherSent();
 }
 
@@ -80,9 +79,6 @@ contract CryptoAnts is ERC721, ICryptoAnts {
   function createAnt() external {
     require(eggs.balanceOf(msg.sender) >= 1, 'You do not have eggs');
     uint256 _antId = ++antsCreated;
-    for (uint256 i = 0; i < allAntsIds.length; i++) {
-      if (allAntsIds[i] == _antId) revert AlreadyExists();
-    }
     _mint(msg.sender, _antId);
     antToOwner[_antId] = msg.sender;
     allAntsIds.push(_antId);
