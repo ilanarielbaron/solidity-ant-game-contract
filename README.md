@@ -18,8 +18,8 @@ This is the note he left us:
 > - [x] EGGs should cost 0.01 ETH
 > - [x] An EGG can be used to create an ANT
 > - [x] An ANT can be sold for less ETH than the EGG price
-> - [ ] Governance should be able to change the price of an egg
-> - [ ] Finish the e2e tests
+> - [x] Governance should be able to change the price of an egg
+> - [x] Finish the e2e tests
 >
 > The following features we said they would be nice to have, but were not required, so i guess they're out of the equation for now...
 >
