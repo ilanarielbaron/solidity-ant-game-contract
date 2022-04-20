@@ -97,7 +97,7 @@ describe('CryptoAnts', function () {
     for (let i = 1; i < 101; i++) {
       const transaction = await cryptoAntsContract.createEgg(i);
       let antAlive = i;
-      while ((Number(await cryptoAntsContract.antToOwner(antAlive))) === 0) {
+      while (Number(await cryptoAntsContract.antToOwner(antAlive)) === 0) {
         if (i === 1) {
           return;
         }
