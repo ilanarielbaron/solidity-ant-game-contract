@@ -18,10 +18,11 @@ interface ICryptoAnts is IERC721 {
 
   function buyEggs(uint256) external payable;
 
-  function createEgg(uint256 _antId) external returns (bool);
+  function createEgg(uint256 _antId) external;
 
   error NoEggs();
   event AntSold();
+  event EggCreated();
   error NoZeroAddress();
   event AntCreated();
   error AlreadyExists();
@@ -49,12 +50,24 @@ contract CryptoAnts is ERC721, ICryptoAnts {
     eggs = IEgg(_eggs);
   }
 
-  function createEgg(uint256 _antId) external override expire(_antId) returns (bool) {
-    require(antToOwner[_antId] == msg.sender, 'Unauthorized');
-    eggs.mint(msg.sender, 1);
-    _expiryOf[_antId - 1] = block.timestamp + _waitTime;
+  // Since solidity is deterministic, is not possible to generate a real random number.
+  function _random(uint256 max) private view returns (uint256) {
+    uint256 randNonce = 0;
 
-    return true;
+    return uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, randNonce))) % max;
+  }
+
+  function createEgg(uint256 _antId) external override expire(_antId) {
+    require(antToOwner[_antId] == msg.sender, 'Unauthorized');
+    uint256 randomNumber = _random(20);
+    if (randomNumber == 0) {
+      delete antToOwner[_antId];
+      _burn(_antId);
+    } else {
+      eggs.mint(msg.sender, randomNumber);
+      _expiryOf[_antId - 1] = block.timestamp + _waitTime;
+      emit EggCreated();
+    }
   }
 
   function buyEggs(uint256 _amount) external payable override lock {
@@ -65,7 +78,7 @@ contract CryptoAnts is ERC721, ICryptoAnts {
   }
 
   function createAnt() external {
-    if (eggs.balanceOf(msg.sender) < 1) revert NoEggs();
+    require(eggs.balanceOf(msg.sender) >= 1, 'You do not have eggs');
     uint256 _antId = ++antsCreated;
     for (uint256 i = 0; i < allAntsIds.length; i++) {
       if (allAntsIds[i] == _antId) revert AlreadyExists();

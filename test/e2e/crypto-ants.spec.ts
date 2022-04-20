@@ -4,7 +4,7 @@ import { utils } from 'ethers';
 import { CryptoAnts, CryptoAnts__factory, Egg, Egg__factory } from '@typechained';
 import { evm } from '@utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { advanceToTimeAndBlock } from '@utils/evm';
+import { advanceTime, advanceTimeAndBlock, advanceToTimeAndBlock } from '@utils/evm';
 
 const FORK_BLOCK_NUMBER = 11298165;
 
@@ -69,7 +69,7 @@ describe('CryptoAnts', function () {
 
   it('should send funds to the user who sells an ant', async () => {
     const cryptoAntsContract = cryptoAnts.connect(randomUser);
-    await cryptoAntsContract.buyEggs(1, { value: 0.01 * 10e16 });
+    await cryptoAntsContract.buyEggs(1, { value: ethers.utils.parseEther('0.1') });
     await cryptoAntsContract.createAnt();
     const initialBalance = await randomUser.getBalance();
     await cryptoAntsContract.sellAnt(1);
@@ -79,7 +79,7 @@ describe('CryptoAnts', function () {
 
   it('should burn the ant after the user sells it', async () => {
     const cryptoAntsContract = cryptoAnts.connect(randomUser);
-    await cryptoAntsContract.buyEggs(1, { value: 0.01 * 10e16 });
+    await cryptoAntsContract.buyEggs(1, { value: ethers.utils.parseEther('0.1') });
     await cryptoAntsContract.createAnt();
     expect(await cryptoAntsContract.balanceOf(randomUser.address)).to.be.equal(1);
     await cryptoAntsContract.sellAnt(1);
@@ -89,14 +89,23 @@ describe('CryptoAnts', function () {
   /*
     This is a completely optional test.
     Hint: you may need advanceTimeAndBlock (from utils) to handle the egg creation cooldown
-    I Didn't need the advanceTimeAndBlock function for this case.
   */
   it('should be able to create a 100 ants with only one initial egg', async () => {
     const cryptoAntsContract = cryptoAnts.connect(randomUser);
-    await cryptoAntsContract.buyEggs(1, { value: 0.01 * 10e16 });
+    await cryptoAntsContract.buyEggs(1, { value: ethers.utils.parseEther('0.1') });
     await cryptoAntsContract.createAnt();
     for (let i = 1; i < 101; i++) {
-      await cryptoAntsContract.createEgg(i);
+      const transaction = await cryptoAntsContract.createEgg(i);
+      let antAlive = i;
+      while ((Number(await cryptoAntsContract.antToOwner(antAlive))) === 0) {
+        if (i === 1) {
+          return;
+        }
+        await advanceTime(transaction.timestamp ?? 0 + 600);
+        antAlive = i - 1;
+        await cryptoAntsContract.createEgg(antAlive);
+        await cryptoAntsContract.createAnt();
+      }
       await cryptoAntsContract.createAnt();
     }
     expect(await cryptoAntsContract.balanceOf(randomUser.address)).to.be.equal(101);
