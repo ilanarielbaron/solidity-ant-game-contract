@@ -55,9 +55,7 @@ describe('CryptoAnts', function () {
   });
 
   it('should only allow the CryptoAnts contract to mint eggs', async () => {
-    await expect(egg.mint(randomUser.address, 1)).to.be.revertedWith(
-      'Only the ants contract can call this function, please refer to the ants contract'
-    );
+    await expect(egg.mint(randomUser.address, 1)).to.be.revertedWith('Unauthorized');
   });
 
   it('should buy an egg and create a new ant with it', async () => {
